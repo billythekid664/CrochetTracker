@@ -1,1 +1,41 @@
-<p>nav-bar works!</p>
+<nav class="navbar navbar-expand-lg bg-primary bg-gradient fixed-top">
+    <div class="container-fluid flex-nowrap align-items-start">
+        <div class="container-fluid">
+            <button id="navToggleButton" class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link text-light" [ngClass]="active === 1 ? 'active fw-bolder' : ''" [routerLink]="['library/home']" (click)="handleNavClick(1)">
+                            Home
+                        </a>
+                    </li>
+                    <!-- <li class="nav-item">
+                        <a class="nav-link text-light" [ngClass]="active === 2 ? 'active fw-bolder' : ''" [routerLink]="['library/user']" (click)="handleNavClick(2)">
+                            User
+                        </a>
+                    </li> -->
+                </ul>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2 w-100 justify-content-end">
+            @if(loggedIn) {
+                <div class="dropdown">
+                    <span class="text-light pointer" data-bs-toggle="dropdown" aria-expanded="false">{{displayName}}</span>
+                    <ul class="dropdown-menu dropdown-menu-end" id="dropdownMenuEmail">
+                        <span class="dropdown-item">{{email}}</span>
+                    </ul>
+                </div>
+                <div class="vr mh-100" style="height: 40px; width: 2px;"></div>
+                <a class="nav-link text-light" href="#" (click)="logout(); handleNavClick(1)">Sign Out</a>
+            }
+            @else {
+                <div class="vr mh-100" style="height: 40px; width: 0px;"></div>
+                <a class="nav-link text-light" [ngClass]="active === 3 ? 'active fw-bolder' : ''" [routerLink]="['login']" [queryParams]="redirectUrl" (click)="handleNavClick(3)">
+                    Sign In
+                </a>
+            }
+        </div>
+    </div>
+</nav>
