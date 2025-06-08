@@ -18,7 +18,7 @@
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
           @for(project of userProjects; track project.projectUid) {
-            <li><a class="dropdown-item" (click)="changeSelectedProject(project)" [ngClass]="selectedProject?.projectUid === project.projectUid ? 'disabled' : ''">{{ project.projectName }}</a></li>
+            <li><button class="dropdown-item" (click)="changeSelectedProject(project)" [ngClass]="selectedProject?.projectUid === project.projectUid ? 'disabled' : ''">{{ project.projectName }}</button></li>
           }
         </ul>
       </div>

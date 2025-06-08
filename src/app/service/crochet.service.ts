@@ -8,7 +8,7 @@ import { arrayRemove, arrayUnion, where } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 
 export const DATALIST_DB = {
-  PROJECTS: 'projects'
+  CROCHET_PROJECTS: 'crochetProjects'
 }
 
 @Injectable({
@@ -24,7 +24,7 @@ export class CrochetService {
     return this.firestore.setDocData({
       name: projectName,
       ownerUid: this.userService.getCurrentUserData().uid
-    }, DATALIST_DB.PROJECTS).then(id => {
+    }, DATALIST_DB.CROCHET_PROJECTS).then(id => {
       return this.createUserCrochetProject(projectName, id);
     });
   }
@@ -32,13 +32,13 @@ export class CrochetService {
   addRoundToProject(projectUid: string, round: Round): Promise<String> {
     return this.firestore.updateDocData({
       rounds: arrayUnion(round)
-    }, DATALIST_DB.PROJECTS, projectUid)
+    }, DATALIST_DB.CROCHET_PROJECTS, projectUid)
   }
 
   removeRoundFromProject(projectUid: string, round: Round): Promise<String> {
     return this.firestore.updateDocData({
       rounds: arrayRemove(round)
-    }, DATALIST_DB.PROJECTS, projectUid);
+    }, DATALIST_DB.CROCHET_PROJECTS, projectUid);
   }
 
   createUserCrochetProject(projectName: string, projectId: string): Promise<string> {
@@ -55,22 +55,22 @@ export class CrochetService {
       userUid: user.uid,
       ownerUid: userProject.ownderUid ? userProject.ownderUid : user.uid
     }
-    return this.firestore.createSubDocData(data, USERS_DB.USERS, user.uid, USERS_DB.CROCHET_PROJECTS, userProject.projectUid);
+    return this.firestore.createSubDocData(data, USERS_DB.USERS, user.uid, USERS_DB.USER_PROJECTS, userProject.projectUid);
   }
 
   fetchProject(projectUid: string): Promise<Project> {
-    return firstValueFrom(this.firestore.getDocData(DATALIST_DB.PROJECTS, projectUid));
+    return firstValueFrom(this.firestore.getDocData(DATALIST_DB.CROCHET_PROJECTS, projectUid));
   }
 
   fetchUsersWithProject(projectUid: string): Promise<UserProject[]> {
-    return this.firestore.queryCollectionGroupData(USERS_DB.CROCHET_PROJECTS, where('id', '==', projectUid));
+    return this.firestore.queryCollectionGroupData(USERS_DB.USER_PROJECTS, where('id', '==', projectUid));
   }
 
   deleteProjectAndReferences(projectId: string): Promise<string> {
-    return this.firestore.deleteDocument(DATALIST_DB.PROJECTS, projectId).then(id => {
+    return this.firestore.deleteDocument(DATALIST_DB.CROCHET_PROJECTS, projectId).then(id => {
       return this.fetchUsersWithProject(projectId).then(dataArray => {
         dataArray.forEach(userProject => {
-          this.firestore.deleteDocument(USERS_DB.USERS, userProject.userUid!, USERS_DB.CROCHET_PROJECTS, projectId);
+          this.firestore.deleteDocument(USERS_DB.USERS, userProject.userUid!, USERS_DB.USER_PROJECTS, projectId);
         });
         return id;
       });
@@ -90,12 +90,12 @@ export class CrochetService {
   renameProject(userProject: UserProject, newProjectName: string): Promise<string> {
     return this.firestore.updateDocData({
       projectName: newProjectName
-    }, DATALIST_DB.PROJECTS, userProject.projectUid).then(id => {
+    }, DATALIST_DB.CROCHET_PROJECTS, userProject.projectUid).then(id => {
       this.fetchUsersWithProject(userProject.projectUid).then(dataArray => {
         dataArray.forEach(userProject => {
           this.firestore.updateDocData({
             projectName: newProjectName
-          }, USERS_DB.USERS, userProject.userUid!, USERS_DB.CROCHET_PROJECTS, id);
+          }, USERS_DB.USERS, userProject.userUid!, USERS_DB.USER_PROJECTS, id);
         });
       });
       return id;

@@ -7,7 +7,7 @@ import { User, UserProject } from '../model/user.model';
 
 export const USERS_DB = {
     USERS: 'users',
-    CROCHET_PROJECTS: 'crochetProjects'
+    USER_PROJECTS: 'userProjects'
   };
 
 @Injectable({
@@ -33,7 +33,7 @@ export class UserService {
   }
 
   fetchUserCrochetProjects(userId: string): Observable<UserProject[]> {
-    return this.firestore.getCollectionData(USERS_DB.USERS, userId, USERS_DB.CROCHET_PROJECTS).pipe(
+    return this.firestore.getCollectionData(USERS_DB.USERS, userId, USERS_DB.USER_PROJECTS).pipe(
       tap(crochetProjects => {
         console.log('userProjects: ', crochetProjects);
         this.crochetProjects = crochetProjects;

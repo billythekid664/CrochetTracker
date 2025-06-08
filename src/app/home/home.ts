@@ -52,6 +52,7 @@ export class Home implements OnInit {
     console.log('create new project');
     this.crochetService.createCrochetProject(this.newProjectName!).then(id => {
       this.userProjects = this.userService.getCurrentUserCrochetProjects();
+      this.changeSelectedProject(this.userProjects.find(project => project.projectUid === id));
     });
   }
 }
