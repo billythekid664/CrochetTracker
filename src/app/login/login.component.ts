@@ -11,6 +11,7 @@ import { getAdditionalUserInfo } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-login',
+  standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, NgbModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'

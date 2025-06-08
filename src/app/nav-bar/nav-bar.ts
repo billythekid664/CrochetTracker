@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-nav-bar',
+  standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: './nav-bar.html',
   styleUrl: './nav-bar.css'

@@ -3,11 +3,11 @@ import { Observable, tap } from 'rxjs';
 import { traceUntilFirst } from '@angular/fire/performance';
 import { Auth, authState, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut, UserCredential } from '@angular/fire/auth';
 import { FirestoreService } from './firestore.service';
-import { User } from '../model/user.model';
+import { User, UserProject } from '../model/user.model';
 
 export const USERS_DB = {
     USERS: 'users',
-    GAME_LISTS: 'gameLists'
+    CROCHET_PROJECTS: 'crochetProjects'
   };
 
 @Injectable({
@@ -17,29 +17,32 @@ export class UserService {
   private auth = inject(Auth);
   private firestore = inject(FirestoreService);
   private user!: User;
+  private crochetProjects!: UserProject[];
+  private currentCrochetProject?: UserProject;
 
   addUser(user: User): Promise<string> {
     return this.firestore.setDocData(user, USERS_DB.USERS, user.uid);
   }
 
-  fetchUser(uid: string): Observable<User> {
-    return this.firestore.getDocData(USERS_DB.USERS, uid).pipe(
+  fetchUser(userId: string): Observable<User> {
+    return this.firestore.getDocData(USERS_DB.USERS, userId).pipe(
       tap(user => {
         this.user = user;
       })
     );
   }
 
-  // fetchUserGameLists(uid: string): Observable<UserGameListRef[]> {
-  //   return this.firestore.getCollectionData(USERS_DB.USERS, uid, USERS_DB.GAME_LISTS).pipe(
-  //     tap(gameLists => {
-  //       this.gameLists = gameLists;
-  //       if (!this.getCurrentGameList()) {
-  //         this.setCurrentGameList(gameLists[0]);
-  //       }
-  //     })
-  //   );
-  // }
+  fetchUserCrochetProjects(userId: string): Observable<UserProject[]> {
+    return this.firestore.getCollectionData(USERS_DB.USERS, userId, USERS_DB.CROCHET_PROJECTS).pipe(
+      tap(crochetProjects => {
+        console.log('userProjects: ', crochetProjects);
+        this.crochetProjects = crochetProjects;
+        if (!this.getCurrentCrochetProject()) {
+          this.setCurrentGameList(crochetProjects[0]);
+        }
+      })
+    );
+  }
 
   createUser(email: string, password: string): Promise<UserCredential> {
     return createUserWithEmailAndPassword(this.auth, email, password);
@@ -49,17 +52,17 @@ export class UserService {
     return this.user;
   }
 
-  // getCurrentUserGameLists(): UserGameListRef[] {
-  //   return this.gameLists;
-  // }
+  getCurrentUserCrochetProjects(): UserProject[] {
+    return this.crochetProjects;
+  }
 
-  // getCurrentGameList(): UserGameListRef | undefined {
-  //   return this.currentGameList;
-  // }
+  getCurrentCrochetProject(): UserProject | undefined {
+    return this.currentCrochetProject;
+  }
 
-  // setCurrentGameList(gameList: UserGameListRef | undefined): void {
-  //   this.currentGameList = gameList;
-  // }
+  setCurrentGameList(crochetProject: UserProject | undefined): void {
+    this.currentCrochetProject = crochetProject;
+  }
 
   checkAuth(): Observable<any> {
     return authState(this.auth).pipe(
