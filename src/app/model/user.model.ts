@@ -17,11 +17,13 @@ export interface UserProject {
 }
 
 export interface UserRound {
-  roundComplete: boolean
-  stitches: Array<Array<UserStitch>>;
+  orderNumber: number;
+  roundComplete: boolean;
+  stitches: Array<UserStitch>;
 }
 
 export interface UserStitch {
   completed: boolean,
+  quantityComplete: number;
   stitchType: StitchType
 }

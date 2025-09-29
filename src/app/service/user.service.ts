@@ -38,7 +38,7 @@ export class UserService {
         console.log('userProjects: ', crochetProjects);
         this.crochetProjects = crochetProjects;
         if (!this.getCurrentCrochetProject()) {
-          this.setCurrentGameList(crochetProjects[0]);
+          this.setCurrentCrochetProject(crochetProjects[0]);
         }
       })
     );
@@ -60,7 +60,7 @@ export class UserService {
     return this.currentCrochetProject;
   }
 
-  setCurrentGameList(crochetProject: UserProject | undefined): void {
+  setCurrentCrochetProject(crochetProject: UserProject | undefined): void {
     this.currentCrochetProject = crochetProject;
   }
 

@@ -1,19 +1,21 @@
-<div>
-  <div class="d-flex mb-4 align-items-center justify-content-around flex-wrap" style="gap: 6px">
-    <p>Create Project</p>
-    <div class="form-floating">
-      <input id="project-name" type="text" class="form-control" placeholder="Project Name" name="projectName" [(ngModel)]="newProjectName"/>
-      <label for="project-name">Project Name</label>
+<div class="pt-2">
+  <!-- <div class="d-flex justify-content-center">
+    <div class="d-flex mb-4 align-items-center align-middle justify-content-around flex-wrap" style="gap: 6px">
+      <div class="form-floating">
+        <input id="project-name" type="text" class="form-control" placeholder="Project Name" name="projectName" [(ngModel)]="newProjectName"/>
+        <label for="project-name">Create Project</label>
+      </div>
+      <div>
+        <button type="button" class="btn btn-primary" (click)="createNewProject()">Create</button>
+      </div>
     </div>
-    <div>
-      <button type="button" class="btn btn-primary" (click)="createNewProject()">Create</button>
-    </div>
-  </div>
+  </div> -->
 
-  <div class="d-flex mb-4 align-items-center justify-content-around flex-wrap" style="gap: 6px">
+  <div class="d-flex flex-column mb-4 align-items-center justify-content-around flex-wrap">
+    <h2>Project</h2>
     @if (!!userProjects && userProjects.length! > 1) {
-      <div class="dropdown">
-        <button id="project-selection" type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" [disabled]="!selectedProject">
+      <div class="btn-group dropdown">
+        <button id="project-selection" type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" [disabled]="!selectedProject">
           {{selectedProject?.projectName || 'No projects available'}}
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
@@ -21,12 +23,144 @@
             <li><button class="dropdown-item" (click)="changeSelectedProject(project)" [ngClass]="selectedProject?.projectUid === project.projectUid ? 'disabled' : ''">{{ project.projectName }}</button></li>
           }
         </ul>
+        <button id="project-options" type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-gear-fill pe-1"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><button class="dropdown-item">TEST Button</button></li>
+        </ul>
       </div>
     }
     @else {
-      <button id="project-selection" type="button" class="btn btn-outline-primary" [disabled]="true">
-        {{selectedProject?.projectName || 'No projects available'}}
-      </button>
+      <div class="btn-group dropdown">
+        <button id="project-selection" type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" [disabled]="true">
+          {{selectedProject?.projectName || 'No projects available'}}
+        </button>
+        <button id="project-options" type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-gear-fill pe-1"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><button class="dropdown-item">TEST Button</button></li>
+        </ul>
+      </div>
+    }
+  </div>
+
+  <div class="d-flex flex-column mb-4 align-items-center justify-content-around flex-wrap">
+    <h2>Rounds</h2>
+    <div class="d-flex flex-row align-items-center align-middle justify-content-around flex-wrap">
+      <form [formGroup]="stitchForm" (ngSubmit)="onAddStitch()" class="d-flex flex-row align-items-center align-middle justify-content-around flex-wrap">
+        <!-- Round number -->
+        <div class="form-floating mb-3">
+          <input type="number" class="form-control" id="roundNumber" formControlName="roundNumber" placeholder="Round Number">
+          <label for="roundNumber">Round Number</label>
+        </div>
+
+        <!-- Stitch type -->
+        <div class="form-floating mb-3">
+          <input type="text" class="form-control" id="stitchType" formControlName="stitchType" placeholder="Stitch Type">
+          <label for="stitchType">Stitch Type</label>
+        </div>
+
+        <!-- Count -->
+        <div class="form-floating mb-3">
+          <input type="number" class="form-control" id="count" formControlName="count" placeholder="Count">
+          <label for="count">Count</label>
+        </div>
+
+        <!-- Add stitch -->
+        <button type="submit" class="btn btn-primary">Add Stitch</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="d-flex flex-column mb-4 align-items-center justify-content-around flex-wrap">
+    <h2>Structure</h2>
+    @if (rounds.length > 0) {
+      <div cdkDropListGroup>
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th scope="col">Round</th>
+              <th scope="col">Type</th>
+              <th scope="col">Quantity</th>
+              <th scope="col">Total</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody cdkDropList id="mainDropList" [cdkDropListData]="flatStitchList" (cdkDropListDropped)="onStitchDrop($event)">
+            <ng-container *ngFor="let round of rounds; let roundIdx = index">
+              <!-- Drop zone ABOVE the round -->
+              <tr>
+                <td colspan="5" style="padding:0;">
+                  <div
+                    cdkDropList
+                    [id]="'dropZone-' + roundIdx + '-above'"
+                    [cdkDropListData]="phantomDropListData"
+                    (cdkDropListDropped)="onZoneDrop($event, roundIdx, 'above')"
+                    class="phantom-drop-row"
+                    [class.hidden-phantom-row]="!isDragging"
+                    style="height:18px;text-align:center;">
+                    <span *ngIf="isDragging"><em>Drop above round {{roundIdx+1}}</em></span>
+                  </div>
+                </td>
+              </tr>
+              <!-- The round's stitches -->
+              <tr *ngFor="let item of getStitchesForRound(round.orderNumber); let idx = index; trackBy: trackByStitch"
+                  cdkDrag
+                  (cdkDragStarted)="onDragStarted()"
+                  (cdkDragEnded)="onDragEnded()">
+                <ng-template cdkDragPlaceholder>
+                  <tr>
+                    <td colspan="5" style="height: 38px; background: #e9ecef; text-align: center;">
+                      <em>Drop here</em>
+                    </td>
+                  </tr>
+                </ng-template>
+                <td *ngIf="item.isFirstInRound || isDragging" [attr.rowspan]="!isDragging ? item.round.stitches.length : 1">{{ item.round.orderNumber }}</td>
+                <td>{{ item.stitch.type }}</td>
+                <td>{{ item.stitch.quantity }}</td>
+                <td *ngIf="item.isFirstInRound || isDragging" [attr.rowspan]="!isDragging ? item.round.stitches.length : 1">{{ item.round.totalStitches }}</td>
+                <td>
+                  <span cdkDragHandle style="cursor: move;" (mousedown)="onDragHandleDown()" (touchstart)="onDragHandleDown()">
+                    <i class="bi bi-arrows-move"></i>
+                  </span>
+                </td>
+              </tr>
+              <!-- Drop zone BELOW the round -->
+              <tr>
+                <td colspan="5" style="padding:0;">
+                  <div
+                    cdkDropList
+                    [id]="'dropZone-' + roundIdx + '-below'"
+                    [cdkDropListData]="phantomDropListData"
+                    (cdkDropListDropped)="onZoneDrop($event, roundIdx, 'below')"
+                    class="phantom-drop-row"
+                    [class.hidden-phantom-row]="!isDragging"
+                    style="height:18px;text-align:center;">
+                    <span *ngIf="isDragging"><em>Drop below round {{roundIdx+1}}</em></span>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+            <!-- Final drop zone at the end -->
+            <tr>
+              <td colspan="5" style="padding:0;">
+                <div
+                  cdkDropList
+                  id="dropZone-end"
+                  [cdkDropListData]="phantomDropListData"
+                  (cdkDropListDropped)="onZoneDrop($event, rounds.length, 'end')"
+                  class="phantom-drop-row"
+                  [class.hidden-phantom-row]="!isDragging"
+                  style="height:18px;text-align:center;">
+                  <span *ngIf="isDragging"><em>Drop at end (new round)</em></span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     }
   </div>
 </div>

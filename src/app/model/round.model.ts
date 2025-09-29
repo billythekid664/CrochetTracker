@@ -1,12 +1,12 @@
 export interface Round {
-  name?: string;
-  stitches: Array<Array<Stitch>>;
+  orderNumber: number
+  stitches: Array<Stitch>;
   totalStitches: number;
 }
 
 export interface Stitch {
   quantity: number;
-  stitchType: StitchType;
+  type: StitchType;
 }
 
 export enum StitchType {
