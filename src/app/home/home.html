@@ -76,8 +76,33 @@
 
   <div class="d-flex flex-column mb-4 align-items-center justify-content-around flex-wrap">
     <h2>Structure</h2>
-    @if (rounds.length > 0) {
-      <div cdkDropListGroup>
+    <div>
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th scope="col">Round</th>
+            <th scope="col">Type</th>
+            <th scope="col">Quantity</th>
+            <th scope="col">Total</th>
+            <!-- <th scope="col">Actions</th> -->
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let round of rounds; let roundIdx = index;">
+            <tr  *ngFor="let stitch of round.stitches; let stitchIdx = index; let first = first">
+              <td *ngIf="first || isDragging" [attr.rowspan]="!isDragging ? round.stitches.length : 1">{{ round.orderNumber }}</td>
+              <td>{{ stitch.type }}</td>
+              <td>{{ stitch.quantity }}</td>
+              <td *ngIf="first || isDragging" [attr.rowspan]="!isDragging ? round.stitches.length: 1">{{ round.totalStitches }}</td>
+              <!-- <td><i class="bi bi-arrows-move"></i></td> -->
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- @if (rounds.length > 0) {
+      <div>
         <table class="table table-sm">
           <thead>
             <tr>
@@ -88,9 +113,9 @@
               <th scope="col">Actions</th>
             </tr>
           </thead>
-          <tbody cdkDropList id="mainDropList" [cdkDropListData]="flatStitchList" (cdkDropListDropped)="onStitchDrop($event)">
+          <tbody cdkDropListGroup>
             <ng-container *ngFor="let round of rounds; let roundIdx = index">
-              <!-- Drop zone ABOVE the round -->
+               Drop zone ABOVE the round
               <tr>
                 <td colspan="5" style="padding:0;">
                   <div
@@ -105,7 +130,7 @@
                   </div>
                 </td>
               </tr>
-              <!-- The round's stitches -->
+               The round's stitches
               <tr *ngFor="let item of getStitchesForRound(round.orderNumber); let idx = index; trackBy: trackByStitch"
                   cdkDrag
                   (cdkDragStarted)="onDragStarted()"
@@ -127,7 +152,7 @@
                   </span>
                 </td>
               </tr>
-              <!-- Drop zone BELOW the round -->
+               Drop zone BELOW the round
               <tr>
                 <td colspan="5" style="padding:0;">
                   <div
@@ -143,7 +168,7 @@
                 </td>
               </tr>
             </ng-container>
-            <!-- Final drop zone at the end -->
+             Final drop zone at the end
             <tr>
               <td colspan="5" style="padding:0;">
                 <div
@@ -161,6 +186,6 @@
           </tbody>
         </table>
       </div>
-    }
+    } -->
   </div>
 </div>
