@@ -22,19 +22,6 @@
     cursor: pointer;
 }
 
-img {
-    height: 70px;
-}
-
-.rounded {
-    border-radius: 50% !important;
-}
-
-td {
-  vertical-align: middle;
-  text-align: center;
-}
-
 .cdk-drag-preview {
   box-sizing: border-box;
   border-radius: 4px;
@@ -48,15 +35,6 @@ td {
   background: #ccc;
 }
 
-.cdk-drag-placeholder td {
-  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-  background: #ccc;
-}
-
-.cdk-drag-handle {
-  cursor: move;
-}
-
 .cdk-drag-animating {
   transition: transform 300ms cubic-bezier(0, 0, 0.2, 1);
 }
@@ -65,23 +43,10 @@ td {
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-.phantom-drop-row {
-  min-height: 25px;
-  height: 25px;
-  background: #f8f9fa;
-  color: #888;
-  font-style: italic;
-  border-top: 2px dashed #b0b0b0;
-  transition: background 0.2s;
-}
-
-.phantom-drop-row td {
-  height: 25px;
-  line-height: 25px;
-}
-
-.hidden-phantom-row {
-  display: none !important;
+.parent-card {
+  width: 75%;
+  min-width: 250px;
+  max-width: 600px
 }
 
 @media (max-width: 768px) {

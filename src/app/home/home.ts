@@ -35,6 +35,8 @@ export class Home implements OnInit {
   before = false;
   after = false;
 
+  emptyRound: Round = {} as Round;
+
   constructor() {
     this.stitchForm = this.fb.group({
       roundNumber: [null, [Validators.required, Validators.min(1)]],
@@ -131,7 +133,7 @@ export class Home implements OnInit {
     this.rounds[roundIdx].stitches.splice(stitchIdx, 1);
     this.rounds[roundIdx].totalStitches -= stitch.quantity;
     this.updateAndConsolidateRounds();
-    
+
     this.cdr.detectChanges();
   }
 
@@ -139,6 +141,8 @@ export class Home implements OnInit {
     console.log(`Drag drop event ${roundIdx}:`, event);
 
     if (event.container === event.previousContainer && event.currentIndex === event.previousIndex) {
+      this.isDragging = false;
+      this.cdr.detectChanges();
       return;
     }
 
