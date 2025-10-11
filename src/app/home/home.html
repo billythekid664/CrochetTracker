@@ -76,116 +76,41 @@
 
   <div class="d-flex flex-column mb-4 align-items-center justify-content-around flex-wrap">
     <h2>Structure</h2>
-    <div>
-      <table class="table table-sm">
-        <thead>
-          <tr>
-            <th scope="col">Round</th>
-            <th scope="col">Type</th>
-            <th scope="col">Quantity</th>
-            <th scope="col">Total</th>
-            <!-- <th scope="col">Actions</th> -->
-          </tr>
-        </thead>
-        <tbody>
-          <ng-container *ngFor="let round of rounds; let roundIdx = index;">
-            <tr  *ngFor="let stitch of round.stitches; let stitchIdx = index; let first = first">
-              <td *ngIf="first || isDragging" [attr.rowspan]="!isDragging ? round.stitches.length : 1">{{ round.orderNumber }}</td>
-              <td>{{ stitch.type }}</td>
-              <td>{{ stitch.quantity }}</td>
-              <td *ngIf="first || isDragging" [attr.rowspan]="!isDragging ? round.stitches.length: 1">{{ round.totalStitches }}</td>
-              <!-- <td><i class="bi bi-arrows-move"></i></td> -->
-            </tr>
-          </ng-container>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- @if (rounds.length > 0) {
-      <div>
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th scope="col">Round</th>
-              <th scope="col">Type</th>
-              <th scope="col">Quantity</th>
-              <th scope="col">Total</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody cdkDropListGroup>
-            <ng-container *ngFor="let round of rounds; let roundIdx = index">
-               Drop zone ABOVE the round
-              <tr>
-                <td colspan="5" style="padding:0;">
-                  <div
-                    cdkDropList
-                    [id]="'dropZone-' + roundIdx + '-above'"
-                    [cdkDropListData]="phantomDropListData"
-                    (cdkDropListDropped)="onZoneDrop($event, roundIdx, 'above')"
-                    class="phantom-drop-row"
-                    [class.hidden-phantom-row]="!isDragging"
-                    style="height:18px;text-align:center;">
-                    <span *ngIf="isDragging"><em>Drop above round {{roundIdx+1}}</em></span>
-                  </div>
-                </td>
-              </tr>
-               The round's stitches
-              <tr *ngFor="let item of getStitchesForRound(round.orderNumber); let idx = index; trackBy: trackByStitch"
-                  cdkDrag
-                  (cdkDragStarted)="onDragStarted()"
-                  (cdkDragEnded)="onDragEnded()">
-                <ng-template cdkDragPlaceholder>
-                  <tr>
-                    <td colspan="5" style="height: 38px; background: #e9ecef; text-align: center;">
-                      <em>Drop here</em>
-                    </td>
-                  </tr>
-                </ng-template>
-                <td *ngIf="item.isFirstInRound || isDragging" [attr.rowspan]="!isDragging ? item.round.stitches.length : 1">{{ item.round.orderNumber }}</td>
-                <td>{{ item.stitch.type }}</td>
-                <td>{{ item.stitch.quantity }}</td>
-                <td *ngIf="item.isFirstInRound || isDragging" [attr.rowspan]="!isDragging ? item.round.stitches.length : 1">{{ item.round.totalStitches }}</td>
-                <td>
-                  <span cdkDragHandle style="cursor: move;" (mousedown)="onDragHandleDown()" (touchstart)="onDragHandleDown()">
-                    <i class="bi bi-arrows-move"></i>
-                  </span>
-                </td>
-              </tr>
-               Drop zone BELOW the round
-              <tr>
-                <td colspan="5" style="padding:0;">
-                  <div
-                    cdkDropList
-                    [id]="'dropZone-' + roundIdx + '-below'"
-                    [cdkDropListData]="phantomDropListData"
-                    (cdkDropListDropped)="onZoneDrop($event, roundIdx, 'below')"
-                    class="phantom-drop-row"
-                    [class.hidden-phantom-row]="!isDragging"
-                    style="height:18px;text-align:center;">
-                    <span *ngIf="isDragging"><em>Drop below round {{roundIdx+1}}</em></span>
-                  </div>
-                </td>
-              </tr>
-            </ng-container>
-             Final drop zone at the end
-            <tr>
-              <td colspan="5" style="padding:0;">
-                <div
-                  cdkDropList
-                  id="dropZone-end"
-                  [cdkDropListData]="phantomDropListData"
-                  (cdkDropListDropped)="onZoneDrop($event, rounds.length, 'end')"
-                  class="phantom-drop-row"
-                  [class.hidden-phantom-row]="!isDragging"
-                  style="height:18px;text-align:center;">
-                  <span *ngIf="isDragging"><em>Drop at end (new round)</em></span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    @if (!rounds || rounds.length === 0) {
+      <div class="alert alert-info" role="alert">
+        No rounds available. Please add stitches to create rounds.
       </div>
-    } -->
+    } @else {
+      <div cdkDropListGroup class="m-auto">
+        <div *ngIf="isDragging" class="card">
+          <div cdkDropList (cdkDropListDropped)="dropOutside($event, true)" class="card-body">
+            Create round before
+          </div>
+        </div>
+        <div class="card" *ngFor="let round of rounds; let roundIdx = index">
+          <div class="card-header d-flex flex-row justify-content-between">
+            <span>Round: {{ round.roundNumber }}</span>
+            <span>Total: {{ round.totalStitches }}</span>
+          </div>
+          <div class="card-body" cdkDropList [cdkDropListData]="round" (cdkDropListDropped)="drop($event, roundIdx)">
+            <div class="card" cdkDrag [cdkDragData]="stitch" (cdkDragStarted)="startDragging()" (cdkDragEnded)="stopDragging()" [cdkDragStartDelay]="175"
+              *ngFor="let stitch of round.stitches; let stitchIdx = index">
+              <div class="card-body d-flex flex-row flex-nowrap justify-content-around ">
+                <div class="col d-flex">Type: {{ stitch.type }}</div>
+                <div class="col d-flex">Total: {{ stitch.quantity }}</div>
+                <div class="col">
+                  <button type="button" class="btn btn-outline-danger btn-sm" (click)="onDeleteStitch(roundIdx, stitchIdx)"><i class="bi bi-trash3-fill"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="isDragging" class="card">
+          <div cdkDropList (cdkDropListDropped)="dropOutside($event, false)" class="card-body">
+            Create round after
+          </div>
+        </div>
+      </div>
+    }
   </div>
 </div>

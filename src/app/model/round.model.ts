@@ -1,5 +1,5 @@
 export interface Round {
-  orderNumber: number
+  roundNumber: number
   stitches: Array<Stitch>;
   totalStitches: number;
 }
