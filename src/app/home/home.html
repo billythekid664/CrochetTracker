@@ -83,7 +83,7 @@
     } @else {
       <div cdkDropListGroup class="m-auto">
         <div *ngIf="isDragging" class="card">
-          <div cdkDropList (cdkDropListDropped)="dropOutside($event, true)" class="card-body">
+          <div cdkDropList (cdkDropListEntered)="startDragging()" (cdkDropListDropped)="dropOutside($event, true)" class="card-body">
             Create round before
           </div>
         </div>
@@ -92,8 +92,8 @@
             <span>Round: {{ round.roundNumber }}</span>
             <span>Total: {{ round.totalStitches }}</span>
           </div>
-          <div class="card-body" cdkDropList [cdkDropListData]="round" (cdkDropListDropped)="drop($event, roundIdx)">
-            <div class="card" cdkDrag [cdkDragData]="stitch" (cdkDragStarted)="startDragging()" (cdkDragEnded)="stopDragging()" [cdkDragStartDelay]="175"
+          <div class="card-body" cdkDropList [cdkDropListData]="round" (cdkDropListExited)="startDragging()" (cdkDropListDropped)="drop($event, roundIdx)">
+            <div class="card" cdkDrag [cdkDragData]="stitch" (cdkDragStarted)="startDragging()"
               *ngFor="let stitch of round.stitches; let stitchIdx = index">
               <div class="card-body d-flex flex-row flex-nowrap justify-content-around ">
                 <div class="col d-flex">Type: {{ stitch.type }}</div>
@@ -106,7 +106,7 @@
           </div>
         </div>
         <div *ngIf="isDragging" class="card">
-          <div cdkDropList (cdkDropListDropped)="dropOutside($event, false)" class="card-body">
+          <div cdkDropList (cdkDropListEntered)="startDragging()" (cdkDropListDropped)="dropOutside($event, false)" class="card-body">
             Create round after
           </div>
         </div>
