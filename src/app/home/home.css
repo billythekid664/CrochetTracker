@@ -49,6 +49,14 @@
   max-width: 600px
 }
 
+.hide {
+    display: none;
+}
+
+.card-placeholder {
+  height: 46px;
+}
+
 @media (max-width: 768px) {
     img {
         height: 48px;

@@ -34,6 +34,7 @@ export class Home implements OnInit {
   isDragging = false;
   before = false;
   after = false;
+  isEditing = false;
 
   emptyRound: Round = {} as Round;
 
@@ -133,6 +134,10 @@ export class Home implements OnInit {
     this.rounds[roundIdx].stitches.splice(stitchIdx, 1);
     this.rounds[roundIdx].totalStitches -= stitch.quantity;
     this.updateAndConsolidateRounds();
+
+    if (this.rounds.length === 0) {
+      this.isEditing = false;
+    }
 
     this.cdr.detectChanges();
   }

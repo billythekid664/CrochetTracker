@@ -75,41 +75,55 @@
   </div>
 
   <div class="d-flex flex-column mb-4 align-items-center justify-content-around flex-wrap">
-    <h2>Structure</h2>
+    <div class="d-flex align-items-center" style="gap: 6px">
+      <h2>Structure</h2>
+      <button type="button" class="btn" [ngClass]="isEditing ? 'btn-secondary' : 'btn-outline-secondary'" (click)="isEditing = !isEditing" [attr.disabled]="!rounds || rounds.length === 0 ? true : null" title="Toggle Edit Mode">
+        <i class="bi" [ngClass]="isEditing ? 'bi-gear-fill' : 'bi-gear'"></i>
+      </button>
+    </div>
+
     @if (!rounds || rounds.length === 0) {
       <div class="alert alert-info mx-5" role="alert">
         No rounds available. Please add stitches to create rounds.
       </div>
     } @else {
       <div cdkDropListGroup class="parent-card">
-        <div *ngIf="isDragging" class="card">
-          <div cdkDropList [cdkDropListData]="emptyRound" (cdkDropListDropped)="dropOutside($event, true)" class="card-body">
-            Create round before
+        @if (isDragging) {
+          <div class="card mb-1">
+            <div cdkDropList [cdkDropListData]="emptyRound" (cdkDropListDropped)="dropOutside($event, true)" class="card-body p-2">
+              Create round before
+            </div>
           </div>
-        </div>
-        <div class="card" *ngFor="let round of rounds; let roundIdx = index">
+        } @else {
+          <div class="card-placeholder"></div>
+        }
+        <div class="card mb-1" *ngFor="let round of rounds; let roundIdx = index">
           <div class="card-header d-flex flex-row justify-content-between">
             <span>Round: {{ round.roundNumber }}</span>
             <span>Total: {{ round.totalStitches }}</span>
           </div>
-          <div class="card-body" cdkDropList [cdkDropListData]="round" (cdkDropListDropped)="drop($event, roundIdx)">
-            <div class="card" cdkDrag [cdkDragData]="stitch" (cdkDragStarted)="startDragging()"
+          <div class="card-body p-2" cdkDropList [cdkDropListData]="round" (cdkDropListDropped)="drop($event, roundIdx)">
+            <div class="card mb-1" cdkDrag [cdkDragData]="stitch" (cdkDragStarted)="startDragging()"
               *ngFor="let stitch of round.stitches; let stitchIdx = index">
-              <div class="card-body d-flex flex-row flex-nowrap justify-content-between align-items-center">
+              <div class="card-body p-1 d-flex flex-row flex-nowrap justify-content-between align-items-center">
                 <div>Type: {{ stitch.type }}</div>
                 <div>Total: {{ stitch.quantity }}</div>
-                <div>
+                <div *ngIf="isEditing">
                   <button type="button" class="btn btn-outline-danger btn-sm" (click)="onDeleteStitch(roundIdx, stitchIdx)"><i class="bi bi-trash3-fill"></i></button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <div *ngIf="isDragging" class="card">
-          <div cdkDropList [cdkDropListData]="emptyRound" (cdkDropListDropped)="dropOutside($event, false)" class="card-body">
-            Create round after
+        @if (isDragging) {
+          <div *ngIf="isDragging" class="card">
+            <div cdkDropList [cdkDropListData]="emptyRound" (cdkDropListDropped)="dropOutside($event, false)" class="card-body p-2">
+              Create round after
+            </div>
           </div>
-        </div>
+        } @else {
+          <div class="card-placeholder"></div>
+        }
       </div>
     }
   </div>
