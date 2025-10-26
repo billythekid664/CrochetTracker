@@ -109,3 +109,21 @@
         margin-left: auto;
     }
 }
+
+/* Prevent accordion button from changing color when delete button is clicked */
+.accordion-button:not(.collapsed) {
+  color: var(--bs-accordion-btn-color);
+  background-color: var(--bs-accordion-btn-bg);
+}
+
+/* Position the delete button properly in accordion header */
+.accordion-button .btn-danger {
+  position: absolute;
+  right: 40px;
+  z-index: 2;
+}
+
+/* Prevent accordion collapse when clicking delete button */
+.accordion-button .btn-danger:focus {
+  box-shadow: none;
+}

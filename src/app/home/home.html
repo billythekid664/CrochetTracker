@@ -47,7 +47,7 @@
   </div>
 
   <div class="d-flex flex-column mb-4 align-items-center justify-content-around flex-wrap">
-    <h2>Rounds</h2>
+    <h2>Add Rounds</h2>
     <div class="d-flex flex-row align-items-center align-middle justify-content-around flex-wrap">
       <form [formGroup]="stitchForm" (ngSubmit)="onAddStitch()" class="d-flex flex-row align-items-center align-middle justify-content-around flex-wrap">
         <!-- Round number -->
@@ -77,54 +77,160 @@
   <div class="d-flex flex-column mb-4 align-items-center justify-content-around flex-wrap">
     <div class="d-flex align-items-center" style="gap: 6px">
       <h2>Structure</h2>
-      <button type="button" class="btn" [ngClass]="isEditing ? 'btn-secondary' : 'btn-outline-secondary'" (click)="isEditing = !isEditing" [attr.disabled]="!rounds || rounds.length === 0 ? true : null" title="Toggle Edit Mode">
-        <i class="bi" [ngClass]="isEditing ? 'bi-gear-fill' : 'bi-gear'"></i>
+
+      <button id="structure-options" type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-gear-fill pe-1"></i>
       </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><button class="dropdown-item" (click)="isEditingSections = true">Edit Sections</button></li>
+      </ul>
     </div>
 
-    @if (!rounds || rounds.length === 0) {
-      <div class="alert alert-info mx-5" role="alert">
-        No rounds available. Please add stitches to create rounds.
-      </div>
-    } @else {
-      <div cdkDropListGroup class="parent-card">
-        @if (isDragging) {
-          <div class="card mb-1">
-            <div cdkDropList [cdkDropListData]="emptyRound" (cdkDropListDropped)="dropOutside($event, true)" class="card-body p-2">
-              Create round before
-            </div>
-          </div>
-        } @else {
-          <div class="card-placeholder"></div>
-        }
-        <div class="card mb-1" *ngFor="let round of rounds; let roundIdx = index">
-          <div class="card-header d-flex flex-row justify-content-between">
-            <span>Round: {{ round.roundNumber }}</span>
-            <span>Total: {{ round.totalStitches }}</span>
-          </div>
-          <div class="card-body p-2" cdkDropList [cdkDropListData]="round" (cdkDropListDropped)="drop($event, roundIdx)">
-            <div class="card mb-1" cdkDrag [cdkDragData]="stitch" (cdkDragStarted)="startDragging()"
-              *ngFor="let stitch of round.stitches; let stitchIdx = index">
-              <div class="card-body p-1 d-flex flex-row flex-nowrap justify-content-between align-items-center">
-                <div>Type: {{ stitch.type }}</div>
-                <div>Total: {{ stitch.quantity }}</div>
-                <div *ngIf="isEditing">
-                  <button type="button" class="btn btn-outline-danger btn-sm" (click)="onDeleteStitch(roundIdx, stitchIdx)"><i class="bi bi-trash3-fill"></i></button>
-                </div>
+    <h4>Sections</h4>
+    <div class="accordion w-100" id="sectionsAccordion">
+      @for(section of sections; track section.sectionNumber; let first = $first) {
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button"
+                    [class.collapsed]="!first"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    [attr.data-bs-target]="'#section-' + section.sectionNumber"
+                    [attr.aria-expanded]="first"
+                    [attr.aria-controls]="'section-' + section.sectionNumber">
+              {{section.name}}
+              @if (isEditingSections) {
+                <button type="button"
+                        class="btn btn-danger btn-sm ms-2"
+                        (click)="$event.stopPropagation(); deleteSection(section)">
+                  <i class="bi bi-trash3-fill"></i>
+                </button>
+              }
+            </button>
+          </h2>
+          <!-- Replace the accordion-body content -->
+          <div [id]="'section-' + section.sectionNumber"
+               class="accordion-collapse collapse"
+               [class.show]="first"
+               [attr.aria-labelledby]="'heading-' + section.sectionNumber"
+               data-bs-parent="#sectionsAccordion">
+            <div class="accordion-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">{{section.name}} Rounds</h5>
+                <button class="btn btn-outline-primary btn-sm"
+                        (click)="openAddRoundModal(section, addRoundModal)">
+                  <i class="bi bi-plus-circle"></i> Add Round
+                </button>
+              </div>
+
+              <!-- Wrap everything in one cdkDropListGroup -->
+              <div cdkDropListGroup>
+                @if (!section.rounds || section.rounds.length === 0) {
+                  <div class="alert alert-info">
+                    No rounds in this section yet.
+                  </div>
+                } @else {
+                  <!-- Before drop zone -->
+                  @if (isDragging) {
+                    <div class="card mb-1">
+                      <div cdkDropList
+                           [cdkDropListData]="emptyRound"
+                           (cdkDropListDropped)="dropOutside($event, true, section)"
+                           class="card-body p-2">
+                        Create round before
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Rounds -->
+                  @for (round of section.rounds; track round.roundNumber; let roundIdx = $index) {
+                    <div class="card mb-1">
+                      <div class="card-header d-flex flex-row justify-content-between">
+                        <span>Round: {{ round.roundNumber }}</span>
+                        <span>Total: {{ round.totalStitches }}</span>
+                      </div>
+                      <div class="card-body p-2"
+                           cdkDropList
+                           [cdkDropListData]="round"
+                           (cdkDropListDropped)="drop($event, roundIdx, section)">
+                        @for (stitch of round.stitches; track stitch; let stitchIdx = $index) {
+                          <div class="card mb-1"
+                               cdkDrag
+                               [cdkDragData]="stitch"
+                               (cdkDragStarted)="startDragging()">
+                            <div class="card-body p-1 d-flex flex-row flex-nowrap justify-content-between align-items-center">
+                              <div>Type: {{ stitch.type }}</div>
+                              <div>Total: {{ stitch.quantity }}</div>
+                              <div *ngIf="isEditing">
+                                <button type="button"
+                                        class="btn btn-outline-danger btn-sm"
+                                        (click)="onDeleteStitch(roundIdx, stitchIdx, section)">
+                                  <i class="bi bi-trash3-fill"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- After drop zone -->
+                  @if (isDragging) {
+                    <div class="card">
+                      <div cdkDropList
+                           [cdkDropListData]="emptyRound"
+                           (cdkDropListDropped)="dropOutside($event, false, section)"
+                           class="card-body p-2">
+                        Create round after
+                      </div>
+                    </div>
+                  }
+                }
               </div>
             </div>
           </div>
         </div>
-        @if (isDragging) {
-          <div *ngIf="isDragging" class="card">
-            <div cdkDropList [cdkDropListData]="emptyRound" (cdkDropListDropped)="dropOutside($event, false)" class="card-body p-2">
-              Create round after
-            </div>
-          </div>
-        } @else {
-          <div class="card-placeholder"></div>
-        }
+      }
+      <!-- Add Section Button -->
+      <div class="d-flex justify-content-center mt-3">
+        <button class="btn btn-outline-primary" (click)="addSection()">
+          <i class="bi bi-plus-circle-fill"></i> Add Section
+        </button>
       </div>
-    }
-  </div>
+    </div>
 </div>
+
+<!-- Add this at the bottom of the file, before closing body tag -->
+<ng-template #addRoundModal let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title" id="modal-basic-title">Add Round to {{selectedSection?.name}}</h4>
+    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
+  </div>
+  <div class="modal-body">
+    <form [formGroup]="stitchForm" (ngSubmit)="onAddStitch()">
+      <!-- Round number -->
+      <div class="form-floating mb-3">
+        <input type="number" class="form-control" id="roundNumber" formControlName="roundNumber" placeholder="Round Number">
+        <label for="roundNumber">Round Number</label>
+      </div>
+
+      <!-- Stitch type -->
+      <div class="form-floating mb-3">
+        <input type="text" class="form-control" id="stitchType" formControlName="stitchType" placeholder="Stitch Type">
+        <label for="stitchType">Stitch Type</label>
+      </div>
+
+      <!-- Count -->
+      <div class="form-floating mb-3">
+        <input type="number" class="form-control" id="count" formControlName="count" placeholder="Count">
+        <label for="count">Count</label>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Round</button>
+      </div>
+    </form>
+  </div>
+</ng-template>

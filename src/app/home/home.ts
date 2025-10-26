@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnChanges, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CrochetService } from '../service/crochet.service';
 import { UserService } from '../service/user.service';
 import { User, UserProject } from '../model/user.model';
-import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
-import { Round, Stitch, StitchType } from '../model/section.model';
+import { NgbModule, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { Round, Section, Stitch, StitchType } from '../model/section.model';
 import { ChangeDetectorRef } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 
@@ -24,25 +24,42 @@ export class Home implements OnInit {
   private cdr = inject(ChangeDetectorRef);
 
   newProjectName?: string;
-  // userProjects?: UserProject[];
-  // selectedProject?: UserProject;
   firstLoad = true;
   loading = false;
   userSignedIn: boolean = false;
   stitchForm: FormGroup;
+  sections: Section[] = [
+    {
+      sectionNumber: 1,
+      name: 'Body',
+      rounds: []
+    }
+  ];
+  selectedSectionNumber: number = 1;
   rounds: Round[] = [];
   isDragging = false;
-  before = false;
-  after = false;
   isEditing = false;
+  isEditingSections = false;
+  isEditingRounds = false;
+  debounceTimer: any;
 
-  emptyRound: Round = {} as Round;
+  emptyRound: Round = {
+    roundNumber: 0,
+    stitches: [],
+    totalStitches: 0,
+    repeatCount: 1
+  };
 
-  constructor() {
-    this.stitchForm = this.fb.group({
-      roundNumber: [null, [Validators.required, Validators.min(1)]],
+  selectedSection?: Section;
+
+  constructor(
+    private modalService: NgbModal,
+    private formBuilder: FormBuilder,
+  ) {
+    this.stitchForm = this.formBuilder.group({
+      roundNumber: ['', Validators.required],
       stitchType: ['', Validators.required],
-      count: [null, [Validators.required, Validators.min(1)]]
+      count: ['', Validators.required]
     });
   }
 
@@ -81,68 +98,46 @@ export class Home implements OnInit {
     return this.userService.getCurrentCrochetProject();
   }
 
-  get flatRounds() {
-    return this.rounds.flatMap(round =>
-      round.stitches.map((stitch, idx) => ({
-        orderNumber: round.roundNumber,
-        stitchType: stitch.type,
-        quantity: stitch.quantity,
-        totalStitches: round.totalStitches,
-        roundSpan: round.stitches.length,
-        isFirst: idx === 0
-      }))
-    );
+  openAddRoundModal(section: Section, content: any) {
+    this.selectedSection = section;
+    // Pre-populate round number based on existing rounds
+    const nextRoundNumber = (section.rounds?.length || 0) + 1;
+    this.stitchForm.patchValue({
+      roundNumber: nextRoundNumber
+    });
+
+    this.modalService.open(content, { ariaLabelledBy: 'modal-basic-title' });
   }
 
   onAddStitch() {
-    if (this.stitchForm.valid) {
+    if (this.stitchForm.valid && this.selectedSection) {
       const { roundNumber, stitchType, count } = this.stitchForm.value;
 
-      // Find the round by its number
-      let round: (Round | undefined) = this.rounds.find(r => r.roundNumber === roundNumber);
+      // Create the new round
+      const newRound: Round = {
+        roundNumber: roundNumber,
+        stitches: [{
+          type: stitchType as StitchType,
+          quantity: count
+        }],
+        totalStitches: count,
+        repeatCount: 1
+      };
 
-      if (!round) {
-        // If the round doesn't exist, create a new one
-        round = {
-          roundNumber: roundNumber,
-          stitches: [],
-          totalStitches: 0
-        };
-        this.rounds.push(round);
+      // Add to selected section's rounds
+      if (!this.selectedSection.rounds) {
+        this.selectedSection.rounds = [];
       }
+      this.selectedSection.rounds.push(newRound);
 
-      // Add the new stitch to the round
-      round.stitches.push({
-        type: stitchType as StitchType,
-        quantity: count
-      });
-
-      // Update the total stitch count for the round
-      round.totalStitches += count;
-
-      this.consolidateStitchesInRound(roundNumber - 1);
-
-      // Reset the form
+      // Reset form and close modal
       this.stitchForm.reset();
+      this.modalService.dismissAll();
       this.cdr.detectChanges();
-      console.log('Current rounds:', JSON.parse(JSON.stringify(this.rounds)));
     }
   }
 
-  onDeleteStitch(roundIdx: number, stitchIdx: number) {
-    const stitch = this.rounds[roundIdx].stitches[stitchIdx];
-    this.rounds[roundIdx].stitches.splice(stitchIdx, 1);
-    this.rounds[roundIdx].totalStitches -= stitch.quantity;
-    this.updateAndConsolidateRounds();
-
-    if (this.rounds.length === 0) {
-      this.isEditing = false;
-    }
-
-    this.cdr.detectChanges();
-  }
-
-  drop(event: CdkDragDrop<Round>, roundIdx: number) {
+  drop(event: CdkDragDrop<Round>, roundIdx: number, section: Section) {
     console.log(`Drag drop event ${roundIdx}:`, event);
 
     if (event.container === event.previousContainer && event.currentIndex === event.previousIndex) {
@@ -152,57 +147,84 @@ export class Home implements OnInit {
     }
 
     if (event.container === event.previousContainer) {
-      const draggedStitch = this.rounds[roundIdx].stitches[event.previousIndex];
-      this.rounds[roundIdx].stitches.splice(event.previousIndex, 1);
-      this.rounds[roundIdx].stitches.splice(event.currentIndex, 0, draggedStitch);
+      const draggedStitch = section.rounds[roundIdx].stitches[event.previousIndex];
+      section.rounds[roundIdx].stitches.splice(event.previousIndex, 1);
+      section.rounds[roundIdx].stitches.splice(event.currentIndex, 0, draggedStitch);
     } else {
       const prevRoundIdx = event.previousContainer.data.roundNumber - 1;
-      const draggedStitch = this.rounds[prevRoundIdx].stitches[event.previousIndex];
-      this.rounds[prevRoundIdx].stitches.splice(event.previousIndex, 1);
-      this.rounds[roundIdx].stitches.splice(event.currentIndex, 0, draggedStitch);
+      const draggedStitch = section.rounds[prevRoundIdx].stitches[event.previousIndex];
+      section.rounds[prevRoundIdx].stitches.splice(event.previousIndex, 1);
+      section.rounds[roundIdx].stitches.splice(event.currentIndex, 0, draggedStitch);
       // Update total stitches for both rounds
-      this.rounds[prevRoundIdx].totalStitches -= draggedStitch.quantity;
-      this.rounds[roundIdx].totalStitches += draggedStitch.quantity;
+      section.rounds[prevRoundIdx].totalStitches -= draggedStitch.quantity;
+      section.rounds[roundIdx].totalStitches += draggedStitch.quantity;
     }
 
-    // Update round numbers and consolidate stitches
-    this.updateAndConsolidateRounds();
-
+    this.updateAndConsolidateRounds(section);
     this.isDragging = false;
-
     this.cdr.detectChanges();
   }
 
-  dropOutside(event: CdkDragDrop<Round>, isBefore: boolean) {
-    console.log(`Drag drop outside event (isBefore: ${isBefore}):`, event);
-    const draggedStitch =  event.previousContainer.data.stitches[event.previousIndex];
-    let newRound: Round = {
-        roundNumber: 1,
-        stitches: [draggedStitch],
-        totalStitches: draggedStitch.quantity
+  dropOutside(event: CdkDragDrop<Round>, isBefore: boolean, section: Section) {
+    if (!section.rounds) {
+      section.rounds = [];
+    }
+
+    const previousRound = event.previousContainer.data;
+    const draggedStitch = previousRound.stitches[event.previousIndex];
+
+    // Remove stitch from previous round
+    const sourceRoundIndex = section.rounds.findIndex(r => r.roundNumber === previousRound.roundNumber);
+    section.rounds[sourceRoundIndex].stitches.splice(event.previousIndex, 1);
+    section.rounds[sourceRoundIndex].totalStitches -= draggedStitch.quantity;
+
+    // Create new round
+    const newRound: Round = {
+      roundNumber: isBefore ? 1 : section.rounds.length + 1,
+      stitches: [draggedStitch],
+      totalStitches: draggedStitch.quantity,
+      repeatCount: 1
     };
 
-    this.rounds[event.previousContainer.data.roundNumber - 1].stitches.splice(event.previousIndex, 1);
-    this.rounds[event.previousContainer.data.roundNumber - 1].totalStitches -= draggedStitch.quantity;
-
+    // Add new round
     if (isBefore) {
-      this.rounds.unshift(newRound);
+      section.rounds.unshift(newRound);
     } else {
-      newRound.roundNumber = this.rounds.length + 1,
-      this.rounds.push(newRound);
+      section.rounds.push(newRound);
     }
 
-    // Update round numbers and consolidate stitches
-    this.updateAndConsolidateRounds();
-
+    this.updateAndConsolidateRounds(section);
     this.isDragging = false;
+    this.cdr.detectChanges();
+  }
+
+  onDeleteStitch(roundIdx: number, stitchIdx: number, section: Section) {
+    const stitch = section.rounds[roundIdx].stitches[stitchIdx];
+    section.rounds[roundIdx].stitches.splice(stitchIdx, 1);
+    section.rounds[roundIdx].totalStitches -= stitch.quantity;
+    this.updateAndConsolidateRounds(section);
+
+    if (section.rounds.length === 0) {
+      this.isEditing = false;
+    }
 
     this.cdr.detectChanges();
   }
 
-  consolidateStitchesInRound(roundIdx: number) {
-    let stitches = this.rounds[roundIdx]?.stitches;
+  private updateAndConsolidateRounds(section: Section) {
+    section.rounds = section.rounds.filter(round => round.stitches.length > 0);
+
+    // Update round numbers and consolidate stitches
+    section.rounds.forEach((round, idx) => {
+      round.roundNumber = idx + 1;
+      this.consolidateStitchesInRound(idx, section);
+    });
+  }
+
+  private consolidateStitchesInRound(roundIdx: number, section: Section) {
+    let stitches = section.rounds[roundIdx]?.stitches;
     if (!stitches) return;
+
     for (let i = 0; i < stitches.length; i++) {
       if (i < stitches.length - 1 && stitches[i+1].type === stitches[i].type) {
         stitches[i].quantity += stitches[i+1].quantity;
@@ -210,21 +232,6 @@ export class Home implements OnInit {
         i--; // Adjust index after merge
       }
     }
-  }
-
-  updateAndConsolidateRounds() {
-    for (let i = 0; i < this.rounds.length; i++) {
-      if (this.rounds[i].stitches.length == 0) {
-        this.rounds.splice(i, 1);
-        i--; // Adjust index after removal
-      }
-    }
-
-    // Update round numbers and consolidate stitches
-    this.rounds.forEach((round, idx) => {
-      round.roundNumber = idx + 1
-      this.consolidateStitchesInRound(idx);
-    });
   }
 
   startDragging() {
@@ -239,4 +246,60 @@ export class Home implements OnInit {
     this.cdr.detectChanges();
   }
 
+  addSection() {
+    console.log('add section');
+    const newSectionNumber = this.sections.length + 1;
+    this.sections.push({
+      sectionNumber: newSectionNumber,
+      name: `Section ${newSectionNumber}`,
+      rounds: []
+    });
+
+    this.cdr.detectChanges();
+
+    this.selectSection(newSectionNumber);
+
+    document.getElementById(`tab-end`)?.classList.remove('active');
+  }
+
+  deleteSection(section: Section) {
+    // Filter out the section to delete
+    this.sections = this.sections.filter(sec => sec.sectionNumber !== section.sectionNumber);
+
+    // Reorder remaining sections' numbers
+    let newSectionNumber;
+    this.sections.forEach((section, index) => {
+      if (section.sectionNumber === this.selectedSectionNumber) {
+        newSectionNumber = index + 1;
+      }
+      section.sectionNumber = index + 1;
+    });
+
+    if (newSectionNumber) {
+      this.selectSection(newSectionNumber);
+    }
+
+    // If we deleted the currently selected section, select the first available section
+    console.log('deleted section number: ', section.sectionNumber, ' current selected section number: ', this.selectedSectionNumber);
+    if (this.selectedSectionNumber === section.sectionNumber || this.sections.length <= 1) {
+      this.selectSection(this.sections.length > 0 ? this.sections[0].sectionNumber : 1);
+    }
+    console.log('deleted section number: ', section.sectionNumber, ' current selected section number: ', this.selectedSectionNumber);
+    console.log('sections after deletion: ', this.sections);
+    this.cdr.detectChanges();
+  }
+
+  selectSection(newSectionNumber: number, skipClick = false) {
+    if (!!this.debounceTimer) { return; }
+    console.log('select section: ', newSectionNumber);
+    this.selectedSectionNumber = !!newSectionNumber ? newSectionNumber : 1;
+    this.cdr.detectChanges();
+
+    this.debounceTimer = setTimeout(() => {
+      this.debounceTimer = undefined;
+    }, 150);
+
+    document.getElementById(`tab-${newSectionNumber}`)?.click();
+
+  }
 }
