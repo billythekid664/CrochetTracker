@@ -5,7 +5,7 @@ import { CrochetService } from '../service/crochet.service';
 import { UserService } from '../service/user.service';
 import { User, UserProject } from '../model/user.model';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
-import { Round, Stitch, StitchType } from '../model/round.model';
+import { Round, Stitch, StitchType } from '../model/section.model';
 import { ChangeDetectorRef } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 

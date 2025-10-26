@@ -1,4 +1,4 @@
-import { StitchType } from "./round.model";
+import { StitchType } from "./section.model";
 
 export interface User {
   uid: string;
@@ -13,7 +13,14 @@ export interface UserProject {
   userUid?: string;
   ownderUid?: string;
   projectName: string;
-  userRounds?: Array<UserRound>
+  userSections?: Array<UserSection>
+}
+
+export interface UserSection {
+  orderNumber: number;
+  sectionNumber: number;
+  sectionComplete: boolean;
+  userRounds?: Array<UserRound>;
 }
 
 export interface UserRound {

@@ -1,9 +1,9 @@
-import { Round } from "./round.model";
+import { Section } from "./section.model";
 
 export interface Project {
   id: string;
   name: string;
   description?: string;
-  rounds: Array<Round>;
+  sections: Array<Section>;
   ownerUid: string;
 }

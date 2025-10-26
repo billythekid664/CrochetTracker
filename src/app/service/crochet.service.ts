@@ -3,7 +3,7 @@ import { FirestoreService } from './firestore.service';
 import { USERS_DB, UserService } from './user.service';
 import { Project } from '../model/project.model';
 import { User, UserProject } from '../model/user.model';
-import { Round } from '../model/round.model';
+import { Round } from '../model/section.model';
 import { arrayRemove, arrayUnion, where } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 
