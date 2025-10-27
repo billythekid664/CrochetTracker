@@ -5,7 +5,7 @@ import { CrochetService } from '../service/crochet.service';
 import { UserService } from '../service/user.service';
 import { User, UserProject } from '../model/user.model';
 import { NgbModule, NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { Round, Section, Stitch, StitchType } from '../model/section.model';
+import { Round, Section, Stitch, StitchType, STITCH_TYPES, getStitchMetadata } from '../model/section.model';
 import { ChangeDetectorRef } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 
@@ -20,6 +20,7 @@ export class Home implements OnInit {
 
   private crochetService = inject(CrochetService);
   private userService = inject(UserService);
+  private modalService = inject(NgbModal);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
 
@@ -28,6 +29,7 @@ export class Home implements OnInit {
   loading = false;
   userSignedIn: boolean = false;
   stitchForm: FormGroup;
+  sectionForm: FormGroup;
   sections: Section[] = [
     {
       sectionNumber: 1,
@@ -36,30 +38,27 @@ export class Home implements OnInit {
     }
   ];
   selectedSectionNumber: number = 1;
-  rounds: Round[] = [];
   isDragging = false;
   isEditing = false;
   isEditingSections = false;
   isEditingRounds = false;
   debounceTimer: any;
 
-  emptyRound: Round = {
-    roundNumber: 0,
-    stitches: [],
-    totalStitches: 0,
-    repeatCount: 1
-  };
+  emptyRound: Round = {} as Round;
 
   selectedSection?: Section;
 
-  constructor(
-    private modalService: NgbModal,
-    private formBuilder: FormBuilder,
-  ) {
-    this.stitchForm = this.formBuilder.group({
-      roundNumber: ['', Validators.required],
+  // Add stitchTypes property
+  stitchTypes = STITCH_TYPES;
+
+  constructor() {
+    this.stitchForm = this.fb.group({
+      roundNumber: [null, Validators.required],
       stitchType: ['', Validators.required],
-      count: ['', Validators.required]
+      count: [null, Validators.required]
+    });
+    this.sectionForm = this.fb.group({
+      sectionName: ['', Validators.required]
     });
   }
 
@@ -100,46 +99,87 @@ export class Home implements OnInit {
 
   openAddRoundModal(section: Section, content: any) {
     this.selectedSection = section;
-    // Pre-populate round number based on existing rounds
-    const nextRoundNumber = (section.rounds?.length || 0) + 1;
+    // Pre-populate round number only, leave stitch type at default empty selection
     this.stitchForm.patchValue({
-      roundNumber: nextRoundNumber
+      stitchType: '' // Start with empty selection
     });
 
     this.modalService.open(content, { ariaLabelledBy: 'modal-basic-title' });
   }
 
+  // Add helper method for getting stitch display name
+  getStitchDisplayName(type: StitchType): string {
+    const metadata = getStitchMetadata(type);
+    return metadata.displayName;
+  }
+
+  // Update onAddStitch to consider stitch count
   onAddStitch() {
     if (this.stitchForm.valid && this.selectedSection) {
       const { roundNumber, stitchType, count } = this.stitchForm.value;
+      const stitchMetadata = getStitchMetadata(stitchType as StitchType);
 
-      // Create the new round
-      const newRound: Round = {
-        roundNumber: roundNumber,
-        stitches: [{
+      // Find existing round or create new one
+      let existingRound = this.selectedSection.rounds.find(r => r.roundNumber === roundNumber);
+
+      if (existingRound) {
+        // Add stitch to existing round
+        const newStitch: Stitch = {
           type: stitchType as StitchType,
           quantity: count
-        }],
-        totalStitches: count,
-        repeatCount: 1
-      };
+        };
 
-      // Add to selected section's rounds
-      if (!this.selectedSection.rounds) {
-        this.selectedSection.rounds = [];
+        existingRound.stitches.push(newStitch);
+        // Calculate base total considering stitch count
+        const baseTotal = existingRound.stitches.reduce((sum, stitch) => {
+          const metadata = getStitchMetadata(stitch.type);
+          return sum + (stitch.quantity * metadata.stitchCount);
+        }, 0);
+        // Apply repeat count to total
+        existingRound.totalStitches = baseTotal * (existingRound.repeatCount || 1);
+
+        // Consolidate same type stitches in the round
+        for (let i = 0; i < existingRound.stitches.length - 1; i++) {
+          if (existingRound.stitches[i].type === existingRound.stitches[i + 1].type) {
+            existingRound.stitches[i].quantity += existingRound.stitches[i + 1].quantity;
+            existingRound.stitches.splice(i + 1, 1);
+            i--; // Recheck current index after splice
+          }
+        }
+      } else {
+        // Create new round if it doesn't exist
+        const newRound: Round = {
+          roundNumber: roundNumber,
+          stitches: [{
+            type: stitchType as StitchType,
+            quantity: count
+          }],
+          totalStitches: count * stitchMetadata.stitchCount,
+          repeatCount: 1
+        };
+
+        if (!this.selectedSection.rounds) {
+          this.selectedSection.rounds = [];
+        }
+        this.selectedSection.rounds.push(newRound);
+
+        // Sort rounds by round number
+        this.selectedSection.rounds.sort((a, b) => a.roundNumber - b.roundNumber);
       }
-      this.selectedSection.rounds.push(newRound);
 
-      // Reset form and close modal
-      this.stitchForm.reset();
+      // Reset form with empty stitch type selection
+      this.stitchForm.reset({
+        roundNumber: null,
+        stitchType: '', // Reset to empty selection
+        count: null
+      });
+
       this.modalService.dismissAll();
       this.cdr.detectChanges();
     }
   }
 
   drop(event: CdkDragDrop<Round>, roundIdx: number, section: Section) {
-    console.log(`Drag drop event ${roundIdx}:`, event);
-
     if (event.container === event.previousContainer && event.currentIndex === event.previousIndex) {
       this.isDragging = false;
       this.cdr.detectChanges();
@@ -235,31 +275,35 @@ export class Home implements OnInit {
   }
 
   startDragging() {
-    console.log('start dragging');
     this.isDragging = true;
     this.cdr.detectChanges();
   }
 
   stopDragging() {
-    console.log('stop dragging');
     this.isDragging = false;
     this.cdr.detectChanges();
   }
 
-  addSection() {
-    console.log('add section');
-    const newSectionNumber = this.sections.length + 1;
-    this.sections.push({
-      sectionNumber: newSectionNumber,
-      name: `Section ${newSectionNumber}`,
-      rounds: []
+  openAddSectionModal(content: any) {
+    this.sectionForm.reset({
+      sectionName: `Section ${this.sections.length + 1}`
     });
+    this.modalService.open(content, { centered: true });
+  }
 
-    this.cdr.detectChanges();
+  onAddSection() {
+    if (this.sectionForm.valid) {
+      const newSectionNumber = this.sections.length + 1;
+      const newSection: Section = {
+        sectionNumber: newSectionNumber,
+        name: this.sectionForm.value.sectionName,
+        rounds: []
+      };
 
-    this.selectSection(newSectionNumber);
-
-    document.getElementById(`tab-end`)?.classList.remove('active');
+      this.sections.push(newSection);
+      this.modalService.dismissAll();
+      this.cdr.detectChanges();
+    }
   }
 
   deleteSection(section: Section) {
@@ -280,18 +324,14 @@ export class Home implements OnInit {
     }
 
     // If we deleted the currently selected section, select the first available section
-    console.log('deleted section number: ', section.sectionNumber, ' current selected section number: ', this.selectedSectionNumber);
     if (this.selectedSectionNumber === section.sectionNumber || this.sections.length <= 1) {
       this.selectSection(this.sections.length > 0 ? this.sections[0].sectionNumber : 1);
     }
-    console.log('deleted section number: ', section.sectionNumber, ' current selected section number: ', this.selectedSectionNumber);
-    console.log('sections after deletion: ', this.sections);
     this.cdr.detectChanges();
   }
 
   selectSection(newSectionNumber: number, skipClick = false) {
     if (!!this.debounceTimer) { return; }
-    console.log('select section: ', newSectionNumber);
     this.selectedSectionNumber = !!newSectionNumber ? newSectionNumber : 1;
     this.cdr.detectChanges();
 
@@ -301,5 +341,45 @@ export class Home implements OnInit {
 
     document.getElementById(`tab-${newSectionNumber}`)?.click();
 
+  }
+
+  private updateTotalStitches(round: Round) {
+    const baseTotal = round.stitches.reduce((sum, stitch) => {
+      const metadata = getStitchMetadata(stitch.type);
+      return sum + (stitch.quantity * metadata.stitchCount);
+    }, 0);
+    round.totalStitches = baseTotal * (round.repeatCount || 1);
+  }
+
+  incrementRepeat(round: Round) {
+    const prevRepeatCount = round.repeatCount || 1;
+    round.repeatCount = prevRepeatCount + 1;
+    this.updateTotalStitches(round);
+    this.cdr.detectChanges();
+  }
+
+  decrementRepeat(round: Round) {
+    if (!round.repeatCount || round.repeatCount <= 1) {
+      return;
+    }
+    round.repeatCount--;
+    this.updateTotalStitches(round);
+    this.cdr.detectChanges();
+  }
+
+  incrementSectionRepeat(section: Section) {
+    if (!section.repeatCount) {
+      section.repeatCount = 1;
+    }
+    section.repeatCount++;
+    this.cdr.detectChanges();
+  }
+
+  decrementSectionRepeat(section: Section) {
+    if (!section.repeatCount || section.repeatCount <= 1) {
+      return;
+    }
+    section.repeatCount--;
+    this.cdr.detectChanges();
   }
 }

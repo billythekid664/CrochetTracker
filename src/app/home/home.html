@@ -47,50 +47,27 @@
   </div>
 
   <div class="d-flex flex-column mb-4 align-items-center justify-content-around flex-wrap">
-    <h2>Add Rounds</h2>
-    <div class="d-flex flex-row align-items-center align-middle justify-content-around flex-wrap">
-      <form [formGroup]="stitchForm" (ngSubmit)="onAddStitch()" class="d-flex flex-row align-items-center align-middle justify-content-around flex-wrap">
-        <!-- Round number -->
-        <div class="form-floating mb-3">
-          <input type="number" class="form-control" id="roundNumber" formControlName="roundNumber" placeholder="Round Number">
-          <label for="roundNumber">Round Number</label>
-        </div>
-
-        <!-- Stitch type -->
-        <div class="form-floating mb-3">
-          <input type="text" class="form-control" id="stitchType" formControlName="stitchType" placeholder="Stitch Type">
-          <label for="stitchType">Stitch Type</label>
-        </div>
-
-        <!-- Count -->
-        <div class="form-floating mb-3">
-          <input type="number" class="form-control" id="count" formControlName="count" placeholder="Count">
-          <label for="count">Count</label>
-        </div>
-
-        <!-- Add stitch -->
-        <button type="submit" class="btn btn-primary">Add Stitch</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="d-flex flex-column mb-4 align-items-center justify-content-around flex-wrap">
     <div class="d-flex align-items-center" style="gap: 6px">
       <h2>Structure</h2>
-
-      <button id="structure-options" type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="bi bi-gear-fill pe-1"></i>
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end">
-        <li><button class="dropdown-item" (click)="isEditingSections = true">Edit Sections</button></li>
-      </ul>
     </div>
 
-    <h4>Sections</h4>
-    <div class="accordion w-100" id="sectionsAccordion">
+    <!-- Update the structure options button -->
+    <div class="d-flex align-items-center mb-2" style="gap: 6px">
+      <h4>Sections</h4>
+      <button id="structure-options"
+              type="button"
+              class="btn"
+              [ngClass]="isEditingSections ? 'btn-secondary' : 'btn-outline-secondary'"
+              (click)="isEditingSections = !isEditingSections">
+        <i class="bi bi-gear-fill"></i>
+      </button>
+    </div>
+
+    <div class="accordion w-100 px-2" id="sectionsAccordion">
       @for(section of sections; track section.sectionNumber; let first = $first) {
         <div class="accordion-item">
           <h2 class="accordion-header">
+            <!-- Update the accordion button to just show the badge -->
             <button class="accordion-button"
                     [class.collapsed]="!first"
                     type="button"
@@ -98,29 +75,66 @@
                     [attr.data-bs-target]="'#section-' + section.sectionNumber"
                     [attr.aria-expanded]="first"
                     [attr.aria-controls]="'section-' + section.sectionNumber">
-              {{section.name}}
-              @if (isEditingSections) {
-                <button type="button"
-                        class="btn btn-danger btn-sm ms-2"
-                        (click)="$event.stopPropagation(); deleteSection(section)">
-                  <i class="bi bi-trash3-fill"></i>
-                </button>
-              }
+              <div class="d-flex justify-content-between align-items-center w-100">
+                <div class="d-flex align-items-center">
+                  <span>{{section.name}}</span>
+                  @if (section.repeatCount && section.repeatCount > 1) {
+                    <span class="badge bg-secondary ms-2">x{{section.repeatCount}}</span>
+                  }
+                </div>
+              </div>
             </button>
           </h2>
-          <!-- Replace the accordion-body content -->
+          <!-- Move repeat controls to top of accordion body -->
           <div [id]="'section-' + section.sectionNumber"
                class="accordion-collapse collapse"
                [class.show]="first"
                [attr.aria-labelledby]="'heading-' + section.sectionNumber"
                data-bs-parent="#sectionsAccordion">
             <div class="accordion-body">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">{{section.name}} Rounds</h5>
-                <button class="btn btn-outline-primary btn-sm"
-                        (click)="openAddRoundModal(section, addRoundModal)">
-                  <i class="bi bi-plus-circle"></i> Add Round
-                </button>
+              <div class="d-flex justify-content-between align-items-center flex-row mb-3 ">
+                @if (isEditingSections) {
+                  <div class="d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0">Section Repeat</h5>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Section repeat">
+                      <button type="button"
+                              class="btn btn-outline-secondary btn-sm"
+                              (click)="decrementSectionRepeat(section)">
+                        <i class="bi bi-dash"></i>
+                      </button>
+                      <span class="badge bg-secondary">x{{section.repeatCount || 1}}</span>
+                      <button type="button"
+                              class="btn btn-outline-secondary btn-sm"
+                              (click)="incrementSectionRepeat(section)">
+                        <i class="bi bi-plus"></i>
+                      </button>
+                    </div>
+                  </div>
+                }
+                <div class="d-flex align-items-center justify-content-between">
+                  <div><h5 class="mb-0">{{section.name}} Rounds</h5></div>
+                  <!-- @if (isEditingSections) {
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Section repeat">
+                      <button type="button"
+                              class="btn btn-outline-secondary btn-sm"
+                              (click)="decrementSectionRepeat(section)">
+                        <i class="bi bi-dash"></i>
+                      </button>
+                      <span class="badge bg-secondary">x{{section.repeatCount || 1}}</span>
+                      <button type="button"
+                              class="btn btn-outline-secondary btn-sm"
+                              (click)="incrementSectionRepeat(section)">
+                        <i class="bi bi-plus"></i>
+                      </button>
+                    </div>
+                  } -->
+                  <div>
+                    <button class="btn btn-outline-primary btn-sm"
+                      (click)="openAddRoundModal(section, addRoundModal)">
+                      <i class="bi bi-plus-circle"></i> Add Round
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <!-- Wrap everything in one cdkDropListGroup -->
@@ -141,25 +155,46 @@
                       </div>
                     </div>
                   }
+                  @else {
+                    <div class="card-placeholder"></div>
+                  }
 
                   <!-- Rounds -->
                   @for (round of section.rounds; track round.roundNumber; let roundIdx = $index) {
                     <div class="card mb-1">
-                      <div class="card-header d-flex flex-row justify-content-between">
+                      <div class="card-header d-flex flex-row justify-content-between align-items-center">
                         <span>Round: {{ round.roundNumber }}</span>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Repeat count">
+                          <button type="button"
+                                  class="btn btn-outline-secondary"
+                                  (click)="decrementRepeat(round)"
+                                  [disabled]="(round.repeatCount || 1) <= 1">
+                            <i class="bi bi-dash"></i>
+                          </button>
+                          <span class="btn btn-outline-secondary border-secondary pe-none"
+                              style="pointer-events: none; background-color: white;">
+                            Repeat: {{ round.repeatCount }}
+                          </span>
+                          <button type="button"
+                                  class="btn btn-outline-secondary"
+                                  (click)="incrementRepeat(round)">
+                            <i class="bi bi-plus"></i>
+                          </button>
+                        </div>
                         <span>Total: {{ round.totalStitches }}</span>
                       </div>
                       <div class="card-body p-2"
-                           cdkDropList
-                           [cdkDropListData]="round"
-                           (cdkDropListDropped)="drop($event, roundIdx, section)">
+                          cdkDropList
+                          [cdkDropListData]="round"
+                          (cdkDropListDropped)="drop($event, roundIdx, section)">
                         @for (stitch of round.stitches; track stitch; let stitchIdx = $index) {
                           <div class="card mb-1"
-                               cdkDrag
-                               [cdkDragData]="stitch"
-                               (cdkDragStarted)="startDragging()">
+                              cdkDrag
+                              [cdkDragData]="stitch"
+                              (cdkDragStarted)="startDragging()">
+                            <!-- Replace the stitch type display in the card body -->
                             <div class="card-body p-1 d-flex flex-row flex-nowrap justify-content-between align-items-center">
-                              <div>Type: {{ stitch.type }}</div>
+                              <div>{{ getStitchDisplayName(stitch.type) }} ({{stitch.type}})</div>
                               <div>Total: {{ stitch.quantity }}</div>
                               <div *ngIf="isEditing">
                                 <button type="button"
@@ -179,12 +214,15 @@
                   @if (isDragging) {
                     <div class="card">
                       <div cdkDropList
-                           [cdkDropListData]="emptyRound"
-                           (cdkDropListDropped)="dropOutside($event, false, section)"
-                           class="card-body p-2">
+                          [cdkDropListData]="emptyRound"
+                          (cdkDropListDropped)="dropOutside($event, false, section)"
+                          class="card-body p-2">
                         Create round after
                       </div>
                     </div>
+                  }
+                  @else {
+                    <div class="card-placeholder"></div>
                   }
                 }
               </div>
@@ -194,7 +232,8 @@
       }
       <!-- Add Section Button -->
       <div class="d-flex justify-content-center mt-3">
-        <button class="btn btn-outline-primary" (click)="addSection()">
+        <button class="btn btn-outline-primary"
+                (click)="openAddSectionModal(addSectionModal)">
           <i class="bi bi-plus-circle-fill"></i> Add Section
         </button>
       </div>
@@ -203,34 +242,69 @@
 
 <!-- Add this at the bottom of the file, before closing body tag -->
 <ng-template #addRoundModal let-modal>
-  <div class="modal-header">
-    <h4 class="modal-title" id="modal-basic-title">Add Round to {{selectedSection?.name}}</h4>
-    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
-  </div>
-  <div class="modal-body">
+  <!-- <div class="modal-content"> -->
+    <div class="modal-header">
+      <h4 class="modal-title" id="modal-basic-title">Add Round to {{selectedSection?.name}}</h4>
+      <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
+    </div>
     <form [formGroup]="stitchForm" (ngSubmit)="onAddStitch()">
-      <!-- Round number -->
-      <div class="form-floating mb-3">
-        <input type="number" class="form-control" id="roundNumber" formControlName="roundNumber" placeholder="Round Number">
-        <label for="roundNumber">Round Number</label>
-      </div>
+      <div class="modal-body">
+        <!-- Round number -->
+        <div class="form-floating mb-3">
+          <input type="number" class="form-control" id="roundNumber" formControlName="roundNumber" placeholder="Round Number">
+          <label for="roundNumber">Round Number</label>
+        </div>
 
-      <!-- Stitch type -->
-      <div class="form-floating mb-3">
-        <input type="text" class="form-control" id="stitchType" formControlName="stitchType" placeholder="Stitch Type">
-        <label for="stitchType">Stitch Type</label>
-      </div>
+        <!-- Stitch type -->
+        <div class="form-floating mb-3">
+          <select class="form-select" id="stitchType" formControlName="stitchType">
+            <option value="">Select a stitch type</option>
+            @for (stitchType of stitchTypes; track stitchType.type) {
+              <option [value]="stitchType.type">{{ stitchType.displayName }} ({{stitchType.type}})</option>
+            }
+          </select>
+          <label for="stitchType">Stitch Type</label>
+        </div>
 
-      <!-- Count -->
-      <div class="form-floating mb-3">
-        <input type="number" class="form-control" id="count" formControlName="count" placeholder="Count">
-        <label for="count">Count</label>
+        <!-- Count -->
+        <div class="form-floating mb-3">
+          <input type="number" class="form-control" id="count" formControlName="count" placeholder="Count">
+          <label for="count">Count</label>
+        </div>
       </div>
-
-      <div class="d-flex justify-content-end gap-2">
-        <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Add Round</button>
+      <div class="modal-footer">
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!stitchForm.valid">Add Round</button>
+        </div>
       </div>
     </form>
+  <!-- </div> -->
+</ng-template>
+
+<ng-template #addSectionModal let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title" id="modal-basic-title">Add New Section</h4>
+    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
   </div>
+  <form [formGroup]="sectionForm" (ngSubmit)="onAddSection()">
+    <div class="modal-body">
+      <div class="form-floating mb-3">
+        <input type="text"
+               class="form-control"
+               id="sectionName"
+               formControlName="sectionName"
+               placeholder="Section Name">
+        <label for="sectionName">Section Name</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">Cancel</button>
+        <button type="submit"
+                class="btn btn-primary"
+                [disabled]="!sectionForm.valid">Add Section</button>
+      </div>
+    </div>
+  </form>
 </ng-template>
